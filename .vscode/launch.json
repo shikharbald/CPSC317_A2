@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "CodeLens (Launch) - DNSLookupService",
+            "request": "launch",
+            "mainClass": "ca.ubc.cs.cs317.dnslookup.DNSLookupService"
+        }
+    ]
+}
