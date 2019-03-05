@@ -206,6 +206,7 @@ public class DNSLookupService {
         }}catch(StackOverflowError e){
 
             System.err.println("\n"+"---> Too many queries");
+            return Collections.emptySet();
         }
      
        
