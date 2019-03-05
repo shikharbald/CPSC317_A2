@@ -185,48 +185,27 @@ public class DNSLookupService {
             usingNode = new DNSNode(NAME.substring(0,NAME.length()-1), usingNode.getType());
         }
         if(NAME.substring(0,1).equals(".")){
-            System.err.println("--> "+"'"+ node.getHostName()+"'"+" is not a legal name");
+            System.err.println("\n"+"--> "+"'"+ node.getHostName()+"'"+" is not a legal name");
             return Collections.emptySet();
         }
         if (indirectionLevel > MAX_INDIRECTION_LEVEL) {
             System.err.println("Maximum number of indirection levels reached.");
             return Collections.emptySet();
         }
-
-      /*  if(usingNode.getType() == RecordType.CNAME){
-            getFromCache(usingNode);
-        }*/
-    
-        
-        /*DNSNode newNode = node ;
-        String[] domainParts = NAME.split("\\.");
-        if (!domainParts[0].equals("www" )&& domainParts.length < 3){
-            newNode = new DNSNode(("www." + NAME), node.getType());
-        }*/
-       /* if (domainParts[0].equals("www")&& domainParts.length > 3){
-            newNode = new DNSNode(NAME.substring(NAME.indexOf(".")+1), node.getType());
-
-        }*/
-        
-        //System.out.println(node1.getHostName()+"      "+node1.getType());
-
-
    
         Set<ResourceRecord> setRR = cache.getCachedResults(usingNode);
         try{
         if(setRR.isEmpty()){
-            setRR = getFromCache(usingNode);
             InetAddress server = rootServer;
+            setRR = getFromCache(usingNode);
             if(!setRR.isEmpty()){
                 server = chooseARecord(setRR).getInetResult();
-              //  System.out.println("------------------------>  "+ server);
             }
-           // System.out.println("++++++++++++++++++++++++++++>>>  "+ usingNode.getHostName()+"  "+usingNode.getType());
             retrieveResultsFromServer(usingNode, server, indirectionLevel);
             setRR = cache.getCachedResults(usingNode);
         }}catch(StackOverflowError e){
 
-           // System.err.println("---> Too many queries");
+            System.err.println("\n"+"---> Too many queries");
         }
      
        
@@ -242,54 +221,53 @@ public class DNSLookupService {
      * @param server Address of the server to be used for the query.
      */
     private static void retrieveResultsFromServer(DNSNode node, InetAddress server, int indirectionLevel) {
- /*  System.out.println("before------------------------>:node    "+node.getHostName());
-        System.out.println("before------------------------>:node    "+node.getType());
-        System.out.println("before------------------------>:RRname    "+resourceRecord.getHostName());
-        System.out.println("before------------------------>:RRInet    "+resourceRecord.getInetResult());
-        System.out.println("before------------------------>:RRType    "+resourceRecord.getType());
-        */
-        //System.out.println("\n \n \n");
-        //System.out.println("\n \n \n");
-
-        //System.out.println("-------------------------------------------------------------------------------------------");
-
         DNSQuery dnsQuery = new DNSQuery(socket , node, server, 0, 0, verboseTracing);
 
-        
+        if(dnsQuery.timout > 1)
+            return;
+
+        //System.out.println("BABABABABABABABABBA!!!");
         if(dnsQuery.answer.AA == 1 || dnsQuery.answer.ANCOUNT > 0){
             if(dnsQuery.answer.cname == 1){
                 resolveCname(node, node, indirectionLevel);
             }
-            return;}
+
+            return;
+        }
         ResourceRecord newRR = dnsQuery.getServerToSendTo();
         InetAddress nextServer =newRR.getInetResult();
-        if(newRR.getType() == RecordType.NS || newRR.getType() == RecordType.CNAME){
+        if(newRR.getType() == RecordType.NS){
             DNSNode newNode = new DNSNode(newRR.getTextResult(), RecordType.A);
             Set<ResourceRecord> set = getResults(newNode, 0);
-            //System.out.println("------------->:  "+newRR.getHostName()+"  "+newRR.getInetResult()+"  "+newRR.getTextResult());
             if(!set.isEmpty()){
              nextServer = chooseARecord(set).getInetResult();
-                //System.out.println("------------->:  "+newRR.getHostName()+"  "+nextServer);
             }
         }
-     
-        //System.out.println("DEB UGIMN DEBUGINH------------->>>>    "+ node.getHostName()+"   "+nextServer+"  "+ node.getType()+"  ");
-
-
+        
         retrieveResultsFromServer(node, nextServer, indirectionLevel);
     
 
     }
-
+/**
+     *
+     * Retrieves the Ipv4 corresponding to the CNAME recieved from the server
+     * it first looks at result in cache if it doesnt find it there it calls getResults()
+     * then it calls itself recursively this time it should find it in the cache
+     *
+     * @param node   Host name and record type to be used for the query.
+     * @param node2   Host name and record type to be used for the query.
+     * @param indirectionLevel Control to limit the number of recursive calls due to CNAME redirection.
+     *                         The initial call should be made with 0 (zero), while recursive calls for
+     *                         regarding CNAME results should increment this value by 1. Once this value
+     *                         reaches MAX_INDIRECTION_LEVEL, the function prints an error message and
+     *                         returns an empty set.
+     * */
     
 
     private static void resolveCname(DNSNode node, DNSNode node2, int indirectionLevel){
         
        DNSNode cnamNode = new DNSNode(node2.getHostName(), RecordType.CNAME);
-       
-
-        //getResults(cnamNode, 0);
-
+    
             String hostName = chooseARecord(cache.getCachedResults(cnamNode)).getTextResult();
             DNSNode nodia = new DNSNode(hostName, node.getType());
             DNSNode nodibi = new DNSNode(hostName, RecordType.CNAME);
@@ -303,14 +281,12 @@ public class DNSLookupService {
                 return;
             }
             else if(!setRR2.isEmpty()){
-                //ResourceRecord RR = chooseARecord(setRR);
                 resolveCname(node, nodibi, indirectionLevel);
                 
             }else{
                 DNSNode newNode = new DNSNode(hostName, node.getType());
-                //System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
                 getResults(newNode, indirectionLevel+1);
-                resolveCname(node, node, indirectionLevel);
+                resolveCname(node, node, indirectionLevel+1);
 
             }
         
@@ -318,8 +294,17 @@ public class DNSLookupService {
 
     }
 
+
+    /**
+     * if the getCachedResults return empty set then this tries to find any
+     * server on its path that is in the cache.
+     *
+     * @param node   Host name with to get the node woth hostname and type A from cache .
+     * */
+    
+
+
     private static Set<ResourceRecord> getFromCache(DNSNode node){
-        //System.out.println("ZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻZZZZZŹZŻ");
         String name = node.getHostName();
         String[] domainParts = name.split("\\.");
     
@@ -330,13 +315,11 @@ public class DNSLookupService {
         else if(domainParts[0].substring(0,1).equals("w") && domainParts.length > 2){
             name = name.substring(name.indexOf(".")+1);
             name = name.substring(name.indexOf(".")+1);
-            //System.out.println("========> "+name );
-            return getFromCacheHelper(new DNSNode(name, node.getType()));
+            return getFromCacheHelper(new DNSNode(name, RecordType.A));
         }
         else{
         name = name.substring(name.indexOf(".")+1);
-        DNSNode newNode = new DNSNode(name, node.getType());            
-        //System.out.println("pp========> "+name );
+        DNSNode newNode = new DNSNode(name, RecordType.A);            
         return getFromCacheHelper(newNode);
 
 
@@ -346,8 +329,14 @@ public class DNSLookupService {
 
     }
 
+   /**
+     * Helper for getFromCache(DNSNode node)
+     *
+     * @param node   Host name with to get the node woth hostname and type A from cache .
+     * */
+    
+
     private static Set<ResourceRecord> getFromCacheHelper(DNSNode node){
-        //System.out.println("PLPLPLPLPLPLLPLLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLPLP");
         String name = node.getHostName();
         String[] domainParts = name.split("\\.");
         Set<ResourceRecord> setRR = cache.getCachedResults(node);
@@ -360,7 +349,6 @@ public class DNSLookupService {
                 return setRR;
         }
         if(!setRRNS.isEmpty()){
-            //System.out.println("HELLLLLLOOOOOO WORLLDLDLLDLDDLLD");
             return resolveNSCache(node, node);
         }
         if(domainParts.length ==1){
@@ -370,7 +358,12 @@ public class DNSLookupService {
         return getFromCacheHelper(newNode);
 
     }
-
+ /**
+     * getFromCacheHelper(DNSNode node)
+     *
+     * @param node   Host name with to get the node woth hostname and type A from cache .
+     * */
+    
 
     private static Set<ResourceRecord> resolveNSCache(DNSNode node, DNSNode node2){
         DNSNode NSNode = new DNSNode(node2.getHostName(), RecordType.NS);
@@ -420,6 +413,12 @@ public class DNSLookupService {
 
     }
 
+    /**
+     * Given a set of ResourceRecourdes chooses one random one
+     *
+     * @param set   A set of Resource records to get a random record from .
+     * */
+    
 
     private static ResourceRecord chooseARecord(Set<ResourceRecord> set){
         ResourceRecord tempRR = null;
@@ -438,11 +437,7 @@ public class DNSLookupService {
         
         return tempRR;
 
-
     }
-    /**
-     * Send the DNSQuery ti the 
-     */
 
    
 }
