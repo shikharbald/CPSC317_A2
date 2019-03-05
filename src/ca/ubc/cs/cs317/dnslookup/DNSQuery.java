@@ -65,15 +65,6 @@ public class DNSQuery{
 
     }
 
-    public void printResults(){
-        for(ResourceRecord RR: this.answer.resourceList ){
-            System.out.println(RR.getHostName()+"       ,  "+ RR.getType()+"     ,  "+ RR.getInetResult());
-
-        }
-
-
-    }
-
     /**
      * It prints the answers, nameservers and additional answers in case where 
      * VerbosePrinting is requested
