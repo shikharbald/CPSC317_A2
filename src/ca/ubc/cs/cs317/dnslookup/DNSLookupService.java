@@ -225,8 +225,6 @@ public class DNSLookupService {
 
         if(dnsQuery.timout > 1)
             return;
-
-        //System.out.println("BABABABABABABABABBA!!!");
         if(dnsQuery.answer.AA == 1 || dnsQuery.answer.ANCOUNT > 0){
             if(dnsQuery.answer.cname == 1){
                 resolveCname(node, node, indirectionLevel);

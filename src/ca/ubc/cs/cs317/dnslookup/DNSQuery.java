@@ -303,19 +303,6 @@ class DNSResponse {
     public int cname;
     ArrayList<ResourceRecord> resourceList = new ArrayList<ResourceRecord>();
   
-
-
-    public void testPrint1(){
-        System.out.println("ID: 0x" + String.format("%x",ID));
-        System.out.println("Flags: 0x" + String.format("%x", Flag));
-        System.out.println("AA: 0x" + String.format("%x", AA));
-        System.out.println("RA: 0x" + String.format("%x", RA));
-        System.out.println("TC: 0x" + String.format("%x", TC));
-        System.out.println("ANCOUNT: " + String.format("%d", ANCOUNT));
-        System.out.println("NSCOUNT: " + String.format("%d", NSCOUNT));
-        System.out.println("ARCOUNT: " + String.format("%d", ARCOUNT));
-
-    }
     /**
      * Gets the resource records and put them in a list
      *
